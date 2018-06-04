@@ -1,0 +1,22 @@
+{
+  "name": "bicycle-npm",
+  "version": "0.0.1",
+  "description": "my own npm cli",
+  "main": "index.js",
+  "author": "gpetukhov",
+  "license": "MIT",
+  "dependencies": {
+    "@types/axios": "^0.14.0",
+    "@types/lodash": "^4.14.109",
+    "@types/node": "^10.3.0",
+    "axios": "^0.18.0",
+    "lodash": "^4.17.10",
+    "nodemon": "^1.17.5",
+    "ts-node": "^6.0.5",
+    "typescript": "^2.9.1"
+  },
+  "scripts": {
+    "start": "yarn run build:live",
+    "build:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./index.ts"
+  }
+}

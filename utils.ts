@@ -12,7 +12,7 @@ export const findPackageJson = (): string => {
 export const getPackageDeclarations = (depsStr: { [pckgName: string]: string }): IPackageDeclaration[] => {
   return _(depsStr)
     .toPairs()
-    .map((pair) => ({ name: pair[0], version: pair[1] }))
+    .map(pair => ({ name: pair[0], version: pair[1] }))
     .value();
 };
 

@@ -18,7 +18,8 @@
   "scripts": {
     "start": "yarn run build:live",
     "build:live": "nodemon --exec ./node_modules/.bin/ts-node -- ./index.ts",
-    "test": "jest"
+    "test": "jest",
+    "lint": "tslint --project ."
   },
   "devDependencies": {
     "@types/jest": "^23.0.0",

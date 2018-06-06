@@ -1,4 +1,4 @@
-export interface PackageDeclaration {
-  name: string,
-  version: string,
+export interface IPackageDeclaration {
+  name: string;
+  version: string;
 }

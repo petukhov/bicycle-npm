@@ -23,7 +23,9 @@
   "devDependencies": {
     "@types/jest": "^23.0.0",
     "jest": "^23.1.0",
-    "ts-jest": "^22.4.6"
+    "prettier": "1.13.4",
+    "ts-jest": "^22.4.6",
+    "tslint": "^5.10.0"
   },
   "jest": {
     "transform": {

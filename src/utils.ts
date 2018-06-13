@@ -38,7 +38,22 @@ const fetchTarballUrls = (pckgUrls: string[]) => {
   );
 };
 
-const getLatestVersionNumberOfPackage = (pckg: IPackageDeclaration): Promise<string> => {
+const getLatestVersionFromChunk = (chunk: string): string | null => {
+  const strToSearch = 'dist-tags":{"latest":"';
+  const distPos = chunk.indexOf(strToSearch);
+  if (distPos !== -1) {
+    const versionNumDirty: string = chunk.slice(
+      distPos + strToSearch.length,
+      distPos + strToSearch.length + 30
+    );
+    const versionNum = versionNumDirty.split('"')[0];
+    return versionNum;
+  } else {
+    return null;
+  }
+};
+
+const getLatestVersionNumberOfPackage = (pckg: IPackageDeclaration): Promise<IPackageDeclaration> => {
   return new Promise((success, fail) => {
     const req = http
       .get(npmRegistryUrl + pckg.name, res => {
@@ -61,16 +76,10 @@ const getLatestVersionNumberOfPackage = (pckg: IPackageDeclaration): Promise<str
 
         res.setEncoding('utf8');
         res.on('data', (chunk: string) => {
-          const strToSearch = 'dist-tags":{"latest":"';
-          const distPos = chunk.indexOf(strToSearch);
-          if (distPos !== -1) {
-            const versionNumDirty: string = chunk.slice(
-              distPos + strToSearch.length,
-              distPos + strToSearch.length + 30
-            );
-            const versionNum = versionNumDirty.split('"')[0];
+          const versionNum = getLatestVersionFromChunk(chunk);
+          if (versionNum) {
             req.abort();
-            success(versionNum);
+            success({ name: pckg.name, version: versionNum });
           }
         });
       })
@@ -80,13 +89,39 @@ const getLatestVersionNumberOfPackage = (pckg: IPackageDeclaration): Promise<str
   });
 };
 
+const downloadTarball = (pckg: IPackageDeclaration): Promise<boolean> => {
+  // https://registry.npmjs.org/lodash/-/lodash-0.2.0.tgz
+  if (!fs.existsSync('_node_modules')) {
+    fs.mkdirSync('_node_modules');
+  }
+  if (!fs.existsSync(`_node_modules/@types`)) {
+    fs.mkdirSync(`_node_modules/@types`);
+  }
+  if (!fs.existsSync(`_node_modules/@types/${pckg.name}`)) {
+    fs.mkdirSync(`_node_modules/@types/${pckg.name}`);
+  }
+  return new Promise((success, fail) => {
+    const file = fs.createWriteStream(`_node_modules/${pckg.name}`);
+    const url = npmRegistryUrl + pckg.name + '/-/' + pckg.name + '-' + pckg.version;
+    const request = http.get(url, res => {
+      res.pipe(file);
+      res.on('end', () => {
+        success(true);
+      });
+    });
+    request.on('error', e => {
+      fail(e.message);
+    });
+  });
+};
+
 export const downloadPackages = async (packages: IPackageDeclaration[]) => {
   // download the package info for each package name e.g. http://registry.npmjs.org/mobx
-  console.log('newest version numbers: ');
-  packages.forEach(async (pckg: IPackageDeclaration) => {
-    const versionNum = await getLatestVersionNumberOfPackage(pckg);
-    console.log(pckg.name, versionNum);
-  });
+  const promises = packages.map(pckg => getLatestVersionNumberOfPackage(pckg));
+  const newestPackages = await Promise.all(promises);
+
+  console.log('newestPackages', newestPackages);
+  await downloadTarball(newestPackages[0]);
   // console.log(res.status);
   // const urls = packages.map(p => npmRegistryUrl + p.name);
   // fetchTarballUrls(urls);

@@ -6,6 +6,7 @@ import _ from 'lodash';
 import { IPackageDeclaration } from './types';
 
 const npmRegistryUrl = 'http://registry.npmjs.org/';
+const nodeModulesDir = '_node_modules';
 
 export const findPackageJson = (): string => {
   // TODO: search for the package in current directory
@@ -24,18 +25,7 @@ export const parsePackageJson = (path: string): IPackageDeclaration[] => {
   const contentsStr = fs.readFileSync(path, 'utf8');
   const contents = JSON.parse(contentsStr);
   const packages = getPackageDeclarations(contents.dependencies);
-  console.log(packages);
   return packages;
-};
-
-const fetchTarballUrls = (pckgUrls: string[]) => {
-  const promises = pckgUrls.map(url => axios.get(url));
-  console.log(promises);
-  axios.all(promises).then(
-    axios.spread((...params) => {
-      console.log('got the data');
-    })
-  );
 };
 
 const getLatestVersionFromChunk = (chunk: string): string | null => {
@@ -89,20 +79,23 @@ const getLatestVersionNumberOfPackage = (pckg: IPackageDeclaration): Promise<IPa
   });
 };
 
+const createDir = (path: string[]): void => {
+  let fullPath = nodeModulesDir;
+  path.forEach(folderName => {
+    fullPath += '/' + folderName;
+    if (!fs.existsSync(fullPath)) {
+      fs.mkdirSync(fullPath);
+    }
+  });
+};
+
 const downloadTarball = (pckg: IPackageDeclaration): Promise<boolean> => {
-  // https://registry.npmjs.org/lodash/-/lodash-0.2.0.tgz
-  if (!fs.existsSync('_node_modules')) {
-    fs.mkdirSync('_node_modules');
-  }
-  if (!fs.existsSync(`_node_modules/@types`)) {
-    fs.mkdirSync(`_node_modules/@types`);
-  }
-  if (!fs.existsSync(`_node_modules/@types/${pckg.name}`)) {
-    fs.mkdirSync(`_node_modules/@types/${pckg.name}`);
-  }
+  const path: string[] = pckg.name.split('/');
+  createDir(path);
   return new Promise((success, fail) => {
-    const file = fs.createWriteStream(`_node_modules/${pckg.name}`);
-    const url = npmRegistryUrl + pckg.name + '/-/' + pckg.name + '-' + pckg.version;
+    const file = fs.createWriteStream(`${nodeModulesDir}/${pckg.name}/tarball.tgz`);
+    const url = npmRegistryUrl + pckg.name + '/-/' + pckg.name + '-' + pckg.version + '.tgz';
+    console.log(url);
     const request = http.get(url, res => {
       res.pipe(file);
       res.on('end', () => {
@@ -116,29 +109,10 @@ const downloadTarball = (pckg: IPackageDeclaration): Promise<boolean> => {
 };
 
 export const downloadPackages = async (packages: IPackageDeclaration[]) => {
-  // download the package info for each package name e.g. http://registry.npmjs.org/mobx
   const promises = packages.map(pckg => getLatestVersionNumberOfPackage(pckg));
   const newestPackages = await Promise.all(promises);
-
   console.log('newestPackages', newestPackages);
-  await downloadTarball(newestPackages[0]);
-  // console.log(res.status);
-  // const urls = packages.map(p => npmRegistryUrl + p.name);
-  // fetchTarballUrls(urls);
-  // packages.forEach(async (pckg: IPackageDeclaration) => {
-  //   const pckgData = await axios.get(npmRegistryUrl + pckg.name);
-  // add assertions here
-  //   const latestVersion: string = pckgData.data['dist-tags'].latest;
-  // add assertions here as well
-  //   const tarballUrl: string = pckgData.data.versions[latestVersion].dist.tarball;
-  //   console.log(tarballUrl);
-  // });
-
-  // check the dist-tags for the latest version
-  // download the tarball at versions.[version#].dist.tarball
-  // unpack the tarball
-  // put the contents in _node_modules, save the meta-data about the package in memory
-  //
-  // const result = await axios.get('https://google.com', {});
-  // console.log(result.data);
+  const tarballPromises = newestPackages.map(pckg => downloadTarball(pckg));
+  const tarballDownloads = await Promise.all(tarballPromises);
+  console.log(tarballDownloads);
 };

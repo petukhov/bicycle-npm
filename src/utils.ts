@@ -1,7 +1,7 @@
-import axios from 'axios';
 import fs from 'fs';
 import http from 'http';
-import _ from 'lodash';
+// @ts-ignore: wrong type defs
+import R from 'ramda';
 
 import { IPackageDeclaration } from './types';
 
@@ -14,10 +14,11 @@ export const findPackageJson = (): string => {
 };
 
 export const getPackageDeclarations = (depsStr: { [pckgName: string]: string }): IPackageDeclaration[] => {
-  return _(depsStr)
-    .toPairs()
-    .map(pair => ({ name: pair[0], version: pair[1] }))
-    .value();
+  const tupleToObj = (pair: string[]): IPackageDeclaration => ({ name: pair[0], version: pair[1] });
+  return R.compose(
+    R.map(tupleToObj),
+    R.toPairs
+  )(depsStr);
 };
 
 export const parsePackageJson = (path: string): IPackageDeclaration[] => {

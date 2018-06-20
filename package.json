@@ -13,6 +13,7 @@
     "coveralls": "^3.0.1",
     "lodash": "^4.17.10",
     "nodemon": "^1.17.5",
+    "ramda": "^0.25.0",
     "ts-node": "^6.0.5",
     "typescript": "^2.9.1"
   },
